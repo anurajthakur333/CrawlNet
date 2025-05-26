@@ -3,7 +3,7 @@ import AppNavbar from "./components/Navbar";
 import OhsLayout from "./pages/ohs/OhsLayout";
 import OhsOverview from "./pages/ohs/Overview";
 import OhsPolicies from "./pages/ohs/Policies";
-import OhsReports from "./pages/ohs/Reports";
+import OHsSettings from "./pages/ohs/Settings";
 import {
   Card,
   Elevation,
@@ -90,7 +90,7 @@ export default function App() {
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<OhsOverview />} />
           <Route path="policies" element={<OhsPolicies />} />
-          <Route path="reports" element={<OhsReports />} />
+          <Route path="settings" element={<OHsSettings />} />
         </Route>
       </Routes>
     </BrowserRouter>

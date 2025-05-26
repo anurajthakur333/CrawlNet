@@ -4,7 +4,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 const navs = [
   { label: "Overview", path: "/ohs/overview" },
   { label: "Policies", path: "/ohs/policies" },
-  { label: "Reports", path: "/ohs/reports" },
+  { label: "Settings", path: "/ohs/settings" },
 ];
 
 export default function OhsLayout() {
