@@ -6,6 +6,7 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.keys import Keys
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
+from pymongo import MongoClient
 
 def close_klaviyo_modal(driver, wait):
     try:
@@ -86,7 +87,19 @@ def scrape_orders():
         orders.append(order)
 
     driver.quit()
+    save_orders_to_mongo(orders)
     return orders
+
+def save_orders_to_mongo(orders):
+    mongo_uri = os.environ.get("MONGO_URI", "mongodb://localhost:27017")
+    client = MongoClient(mongo_uri)
+    db = client["ohs"]  # database name
+    collection = db["orders"]  # collection name
+    # Remove old orders for this user (optional, or you can upsert)
+    collection.delete_many({})  # Remove this line if you want to keep history
+    if orders:
+        collection.insert_many(orders)
+    client.close()
 
 if __name__ == "__main__":
     print(scrape_orders())

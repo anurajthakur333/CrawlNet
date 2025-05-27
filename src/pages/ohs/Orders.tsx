@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   Card,
   Elevation,
@@ -13,6 +13,8 @@ import {
   Tag,
   Intent,
   Icon,
+  H4,
+  Divider,
 } from "@blueprintjs/core";
 
 interface Order {
@@ -21,6 +23,13 @@ interface Order {
   total: string;
   status: string;
   view_link: string;
+}
+
+interface Stats {
+  total: number;
+  completed: number;
+  canceled: number;
+  db_count: number;
 }
 
 interface Filters {
@@ -33,12 +42,16 @@ interface Filters {
 
 export default function OhsOrders() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [stats, setStats] = useState<Stats>({ total: 0, completed: 0, canceled: 0, db_count: 0 });
   const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
   const [fetched, setFetched] = useState(false);
   const [selectedOrders, setSelectedOrders] = useState<Set<string>>(new Set());
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(10);
+  const [lastFetchInfo, setLastFetchInfo] = useState<string | null>(null);
   
   const [filters, setFilters] = useState<Filters>({
     showCompleted: true,
@@ -48,21 +61,39 @@ export default function OhsOrders() {
     dateTo: "",
   });
 
-  const fetchOrders = async () => {
+  // Clear messages after timeout
+  useEffect(() => {
+    if (success) {
+      const timer = setTimeout(() => setSuccess(null), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
+  useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(null), 8000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
+
+  // Fetch orders from MongoDB
+  const fetchOrdersFromDb = async () => {
     setLoading(true);
     setError(null);
-    setFetched(false);
+    setSuccess(null);
     setSelectedOrders(new Set());
     try {
-      const response = await fetch("http://localhost:8000/orders");
+      const response = await fetch("http://localhost:8000/orders_db");
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
       if (data.orders && Array.isArray(data.orders)) {
         setOrders(data.orders);
+        setStats(data.stats || { total: 0, completed: 0, canceled: 0, db_count: 0 });
         setFetched(true);
         setCurrentPage(1);
+        setLastFetchInfo(`Loaded ${data.orders.length} orders from database`);
       } else {
         setError("Invalid data structure received from API");
       }
@@ -72,6 +103,84 @@ export default function OhsOrders() {
       setLoading(false);
     }
   };
+
+  // Trigger a fresh scrape and then reload from DB
+  const fetchOrders = async () => {
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+    setSelectedOrders(new Set());
+    try {
+      // Trigger the scrape (which also updates the DB)
+      const response = await fetch("http://localhost:8000/orders");
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      const data = await response.json();
+      
+      if (data.orders && Array.isArray(data.orders)) {
+        setOrders(data.orders);
+        setStats(data.stats || { total: 0, completed: 0, canceled: 0, db_count: 0 });
+        setFetched(true);
+        setCurrentPage(1);
+        
+        const scrapedCount = data.scraped_count || 0;
+        const dbCount = data.count || 0;
+        setLastFetchInfo(`Scraped ${scrapedCount} orders, ${dbCount} total in database`);
+        setSuccess(`Successfully fetched and saved ${scrapedCount} orders to database!`);
+      } else if (data.error) {
+        setError(`Scraping error: ${data.error}`);
+      } else {
+        setError("Invalid data structure received from API");
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Delete all orders from database
+  const deleteAllOrders = async () => {
+    if (!window.confirm("Are you sure you want to delete ALL orders from the database? This action cannot be undone.")) {
+      return;
+    }
+    
+    setDeleting(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const response = await fetch("http://localhost:8000/orders_db", {
+        method: "DELETE"
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.success) {
+        setOrders([]);
+        setStats({ total: 0, completed: 0, canceled: 0, db_count: 0 });
+        setSelectedOrders(new Set());
+        setCurrentPage(1);
+        setLastFetchInfo(`Deleted ${data.deleted_count} orders from database`);
+        setSuccess(`Successfully deleted ${data.deleted_count} orders from database!`);
+      } else {
+        setError(`Delete error: ${data.error}`);
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error occurred");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  // Initial load from DB
+  useEffect(() => {
+    fetchOrdersFromDb();
+  }, []);
 
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
@@ -160,29 +269,142 @@ export default function OhsOrders() {
       paddingRight: "20px",
       fontFamily: "-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
     }}>
+      {/* Header Card */}
+      <Card elevation={Elevation.THREE} style={{ 
+        padding: "30px", 
+        marginBottom: "20px",
+        background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+        color: "white"
+      }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <div>
+            <H2 style={{ 
+              margin: 0, 
+              display: "flex", 
+              alignItems: "center", 
+              fontWeight: 700,
+              color: "white",
+              fontSize: "28px"
+            }}>
+              <Icon icon="globe-network" size={32} style={{ marginRight: "15px", color: "white" }} />
+              OHS Orders Scraper
+            </H2>
+            <p style={{ 
+              margin: "8px 0 0 47px", 
+              fontSize: "16px", 
+              opacity: 0.9,
+              color: "white"
+            }}>
+              Automated order tracking for OnlineHomeShop.com
+            </p>
+          </div>
+          <div style={{ textAlign: "right" }}>
+            <div style={{ fontSize: "14px", opacity: 0.8, marginBottom: "5px", color: "white" }}>
+              Database Status
+            </div>
+            <div style={{ fontSize: "24px", fontWeight: "bold", color: "white" }}>
+              {stats.db_count} Orders
+            </div>
+          </div>
+        </div>
+      </Card>
+
+      {/* Statistics Cards */}
+      <div style={{ 
+        display: "grid", 
+        gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", 
+        gap: "20px", 
+        marginBottom: "25px" 
+      }}>
+        <Card elevation={Elevation.ONE} style={{ padding: "20px", textAlign: "center" }}>
+          <Icon icon="database" size={24} style={{ color: "#137cbd", marginBottom: "8px" }} />
+          <H4 style={{ margin: "0 0 5px 0", color: "#137cbd" }}>{stats.total}</H4>
+          <div style={{ color: "#5c7080", fontSize: "14px" }}>Total Orders</div>
+        </Card>
+        
+        <Card elevation={Elevation.ONE} style={{ padding: "20px", textAlign: "center" }}>
+          <Icon icon="tick-circle" size={24} style={{ color: "#0f9960", marginBottom: "8px" }} />
+          <H4 style={{ margin: "0 0 5px 0", color: "#0f9960" }}>{stats.completed}</H4>
+          <div style={{ color: "#5c7080", fontSize: "14px" }}>Completed</div>
+        </Card>
+        
+        <Card elevation={Elevation.ONE} style={{ padding: "20px", textAlign: "center" }}>
+          <Icon icon="cross-circle" size={24} style={{ color: "#d9822b", marginBottom: "8px" }} />
+          <H4 style={{ margin: "0 0 5px 0", color: "#d9822b" }}>{stats.canceled}</H4>
+          <div style={{ color: "#5c7080", fontSize: "14px" }}>Canceled</div>
+        </Card>
+        
+        <Card elevation={Elevation.ONE} style={{ padding: "20px", textAlign: "center" }}>
+          <Icon icon="filter" size={24} style={{ color: "#7961db", marginBottom: "8px" }} />
+          <H4 style={{ margin: "0 0 5px 0", color: "#7961db" }}>{filteredOrders.length}</H4>
+          <div style={{ color: "#5c7080", fontSize: "14px" }}>Filtered</div>
+        </Card>
+      </div>
+
       <Card elevation={Elevation.TWO} style={{ padding: "30px" }}>
-        {/* Header */}
+        {/* Action Header */}
         <div style={{ 
           display: "flex", 
           justifyContent: "space-between", 
           alignItems: "center", 
-          marginBottom: "30px" 
+          marginBottom: "20px" 
         }}>
-          <H2 style={{ margin: 0, display: "flex", alignItems: "center", fontWeight: 600 }}>
-            <Icon icon="shopping-cart" size={24} style={{ marginRight: "12px" }} />
-            My Orders
-          </H2>
-          <Button
-            intent="primary"
-            onClick={fetchOrders}
-            loading={loading}
-            large
-            icon="refresh"
-            style={{ minWidth: "140px" }}
-          >
-            {loading ? "Loading..." : fetched ? "Refresh" : "Fetch Orders"}
-          </Button>
+          <div>
+            <H2 style={{ margin: "0 0 5px 0", fontWeight: 600 }}>Order Management</H2>
+            {lastFetchInfo && (
+              <div style={{ color: "#5c7080", fontSize: "14px" }}>
+                {lastFetchInfo}
+              </div>
+            )}
+          </div>
+          
+          <ButtonGroup large style={{ gap: "16px" }}>
+            <Button
+              intent="primary"
+              onClick={fetchOrders}
+              loading={loading}
+              icon="refresh"
+              style={{ minWidth: "140px" }}
+            >
+              {loading ? "Scraping..." : "Fetch New Orders"}
+            </Button>
+            
+            <Button
+              intent="none"
+              onClick={fetchOrdersFromDb}
+              loading={loading}
+              icon="database"
+              disabled={loading || deleting}
+            >
+              Reload from DB
+            </Button>
+            
+            <Button
+              intent="danger"
+              onClick={deleteAllOrders}
+              loading={deleting}
+              icon="trash"
+              disabled={loading || deleting || orders.length === 0}
+            >
+              {deleting ? "Deleting..." : "Clear Database"}
+            </Button>
+          </ButtonGroup>
         </div>
+
+        <Divider style={{ margin: "20px 0" }} />
+
+             {/* Success/Error Messages */}
+             {success && (
+          <Callout intent="success" style={{ marginBottom: "20px" }} icon="tick">
+            {success}
+          </Callout>
+        )}
+
+        {error && (
+          <Callout intent="danger" style={{ marginBottom: "20px" }} icon="error">
+            <strong>Error:</strong> {error}
+          </Callout>
+        )}
 
         {/* Filters */}
         <Card elevation={Elevation.ONE} style={{ marginBottom: "25px", padding: "20px" }}>
@@ -250,22 +472,15 @@ export default function OhsOrders() {
           <div style={{ textAlign: "center", padding: "60px 20px" }}>
             <Spinner size={40} />
             <div style={{ marginTop: "15px", color: "#5c7080", fontSize: "14px" }}>
-              Fetching orders...
+              {loading ? "Fetching orders..." : "Loading..."}
             </div>
           </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <Callout intent="danger" style={{ marginBottom: "25px" }}>
-            <strong>Error:</strong> {error}
-          </Callout>
         )}
 
         {/* No Orders */}
         {fetched && !loading && !error && filteredOrders.length === 0 && (
           <Callout intent="warning" icon="search">
-            {orders.length === 0 ? "No orders found." : "No orders match your filters."}
+            {orders.length === 0 ? "No orders found in database. Click 'Fetch New Orders' to scrape fresh data." : "No orders match your filters."}
           </Callout>
         )}
 
@@ -364,7 +579,6 @@ export default function OhsOrders() {
                     <td style={{ textAlign: "center" }}>
                       <Button
                         small
-                        minimal
                         icon="document-open"
                         intent="primary"
                         onClick={() => window.open(order.view_link, "_blank")}
@@ -422,7 +636,7 @@ export default function OhsOrders() {
               <span style={{ fontSize: "14px", fontWeight: 500 }}>
                 {selectedOrders.size} order{selectedOrders.size !== 1 ? 's' : ''} selected
               </span>
-              <ButtonGroup>
+              <ButtonGroup style={{ gap: "16px" }}>
                 <Button icon="export" intent="primary" small>
                   Export
                 </Button>

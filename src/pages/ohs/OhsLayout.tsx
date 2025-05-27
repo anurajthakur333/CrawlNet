@@ -3,7 +3,7 @@ import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 const navs = [
   { label: "Orders", path: "/ohs/orders" },
-  { label: "Policies", path: "/ohs/policies" },
+  { label: "Order Details", path: "/ohs/order-details" },
   { label: "Settings", path: "/ohs/settings" },
 ];
 

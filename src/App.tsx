@@ -2,14 +2,11 @@ import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppNavbar from "./components/Navbar";
 import OhsLayout from "./pages/ohs/OhsLayout";
 import OhsOrders from "./pages/ohs/Orders";
-import OhsOverview from "./pages/ohs/Policies";
+import OrderDetails from "./pages/ohs/OrderDetails";
 import OHsSettings from "./pages/ohs/Settings";
 import {
   Card,
   Elevation,
-  Icon,
-  Tag,
-  Divider,
   H1,
   H4,
   Classes,
@@ -30,7 +27,6 @@ export default function App() {
                 display: "flex",
                 justifyContent: "center",
                 alignItems: "center",
-                padding: "1rem",
               }}
             >
               <Card
@@ -58,30 +54,11 @@ export default function App() {
                 >
                   The smarter way to scrape the web 🔍
                 </H4>
-
-                <Divider />
-
-                <div style={{ marginTop: "1.5rem" }}>
-                  <a
-                    href="https://anuraj.online"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ textDecoration: "none" }}
-                  >
-                    <Tag
-                      interactive
-                      style={{
-                        fontSize: "1rem",
-                        padding: "0.6rem 1.2rem",
-                        backgroundColor: "#0f9960",
-                        color: "white",
-                        cursor: "pointer",
-                      }}
-                    >
-                      🚀 Made by <strong>Anuraj</strong>
-                    </Tag>
-                  </a>
-                </div>
+                <a href="https://anuraj.online" target="_blank" rel="noopener noreferrer">
+                  <span style={{ fontSize: "1rem", color: "#5c7080", fontWeight: "normal" }}>
+                    ❤️ Made by <strong>Anuraj</strong>
+                  </span>
+                </a>
               </Card>
             </div>
           }
@@ -89,7 +66,7 @@ export default function App() {
         <Route path="/ohs" element={<OhsLayout />}>
           <Route index element={<Navigate to="orders" replace />} />
           <Route path="orders" element={<OhsOrders />} />
-          <Route path="policies" element={<OhsOverview />} />
+          <Route path="order-details" element={<OrderDetails />} />
           <Route path="settings" element={<OHsSettings />} />
         </Route>
       </Routes>
