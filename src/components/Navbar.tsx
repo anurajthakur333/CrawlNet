@@ -18,18 +18,17 @@ export default function AppNavbar() {
         WebkitBackdropFilter: "blur(14px)",
         borderBottom: "1px solid rgba(255,255,255,0.08)",
         boxShadow: "0 4px 20px rgba(0,0,0,0.25)",
-        padding: "0 24px",
+        padding: "0 32px",
+        height: "64px",
       }}
     >
       <div
         style={{
           width: "100%",
-          maxWidth: "1200px",
-          margin: "0 auto",
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
-          height: "56px",
+          height: "100%",
         }}
       >
         {/* Brand + nav links */}
