@@ -1,8 +1,8 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import AppNavbar from "./components/Navbar";
 import OhsLayout from "./pages/ohs/OhsLayout";
-import OhsOverview from "./pages/ohs/Overview";
-import OhsPolicies from "./pages/ohs/Policies";
+import OhsOrders from "./pages/ohs/Orders";
+import OhsOverview from "./pages/ohs/Policies";
 import OHsSettings from "./pages/ohs/Settings";
 import {
   Card,
@@ -87,9 +87,9 @@ export default function App() {
           }
         />
         <Route path="/ohs" element={<OhsLayout />}>
-          <Route index element={<Navigate to="overview" replace />} />
-          <Route path="overview" element={<OhsOverview />} />
-          <Route path="policies" element={<OhsPolicies />} />
+          <Route index element={<Navigate to="orders" replace />} />
+          <Route path="orders" element={<OhsOrders />} />
+          <Route path="policies" element={<OhsOverview />} />
           <Route path="settings" element={<OHsSettings />} />
         </Route>
       </Routes>

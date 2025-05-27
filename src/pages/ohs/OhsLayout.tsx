@@ -2,7 +2,7 @@ import { Navbar, NavbarGroup, Button } from "@blueprintjs/core";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 
 const navs = [
-  { label: "Overview", path: "/ohs/overview" },
+  { label: "Orders", path: "/ohs/orders" },
   { label: "Policies", path: "/ohs/policies" },
   { label: "Settings", path: "/ohs/settings" },
 ];
