@@ -8,6 +8,9 @@ import {
 } from "@blueprintjs/core";
 import { Link } from "react-router-dom";
 
+import { SignedIn, SignedOut, UserButton, SignInButton } from "@clerk/clerk-react";
+
+
 export default function AppNavbar() {
   return (
     <Navbar
@@ -47,6 +50,7 @@ export default function AppNavbar() {
           >
             <span style={{ fontSize: "1.4rem" }}>🌐</span> CrawlNet
           </Link>
+          <SignedIn>
           <Link to="/ohs" style={{ textDecoration: "none" }}>
             <Button
               text="OHS"
@@ -64,8 +68,17 @@ export default function AppNavbar() {
               }}
             />
           </Link>
+          </SignedIn>
         </div>
+        <SignedIn>
+    <UserButton />
+  </SignedIn>
 
+  <SignedOut>
+    <SignInButton mode="modal">
+      <Button text="Sign In" minimal outlined style={{ color: "#fff", borderColor: "rgba(255,255,255,0.25)" }} />
+    </SignInButton>
+  </SignedOut>
         {/* Made by */}
         <a
           href="https://anuraj.online"
@@ -86,3 +99,12 @@ export default function AppNavbar() {
     </Navbar>
   );
 }
+
+
+
+
+
+
+
+
+
