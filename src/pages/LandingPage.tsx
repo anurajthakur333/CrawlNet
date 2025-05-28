@@ -737,28 +737,7 @@ const LandingPage = () => {
                   zIndex: plan.popular ? 2 : 1
                 }}
               >
-                {plan.popular && (
-                  <div className="floating" style={{
-                    position: "absolute",
-                    top: "-15px",
-                    left: "50%",
-                    transform: "translateX(-50%)",
-                    background: "linear-gradient(135deg,rgb(255, 0, 0) 0%,rgb(255, 0, 183) 100%)",
-                    padding: "8px 24px",
-                    borderRadius: "5px",
-                    fontWeight: "700",
-                    fontSize: "0.85rem",
-                    color: "white",
-                     boxShadow: "0 10px 40px rgba(46, 46, 46, 0.6)",
-                    zIndex: 3,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "0.5rem"
-                  }}>
-                    <span className="pulsing" style={{ display: "inline-block" }}>⭐</span>
-                    MOST POPULAR
-                  </div>
-                )}
+     
                 
                 <div 
                   className={`${plan.popular ? 'floating' : ''}`}
