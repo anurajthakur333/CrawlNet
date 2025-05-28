@@ -71,10 +71,10 @@ const LandingPage = () => {
   }, []);
 
   return (
-    <div style={{ 
+    <div style={{
       backgroundColor: "#0a0e27",
       minHeight: "100vh",
-      overflowX: "hidden",
+      overflow: "hidden",
       width: "100%",
       margin: 0,
       padding: 0
@@ -91,6 +91,7 @@ const LandingPage = () => {
           margin: 0;
           padding: 0;
           overflow-x: hidden;
+          background: #0a0e27;
         }
         
         @keyframes float {
@@ -374,7 +375,7 @@ const LandingPage = () => {
           zIndex: 1
         }}>
           {[
-            { number: "50K+", label: "Happy Users", emoji: "🎉", color: "#FF6B6B" },
+            { number: "50K+", label: "Users", emoji: "🎉", color: "#FF6B6B" },
             { number: "10M+", label: "Pages Scraped", emoji: "📄", color: "#4ECDC4" },
             { number: "99.9%", label: "Uptime", emoji: "⚡", color: "#FFE66D" },
             { number: "24/7", label: "Support", emoji: "🛟", color: "#95E1D3" }
@@ -645,18 +646,7 @@ const LandingPage = () => {
         </div>
 
         <div style={{ position: "relative", zIndex: 1 }}>
-          <div style={{ textAlign: "center", marginBottom: "4rem" }}>
-            <div style={{
-              display: "inline-block",
-              padding: "0.5rem 2rem",
-              background: "linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-              borderRadius: "50px",
-              marginBottom: "1rem"
-            }}>
-              <span style={{ color: "white", fontWeight: "600", fontSize: "0.9rem" }}>
-                💎 PRICING PLANS
-              </span>
-            </div>
+          <div style={{ textAlign: "center"}}>
             
             <H2 style={{
               color: "white",
@@ -741,24 +731,25 @@ const LandingPage = () => {
               <div 
                 key={index} 
                 style={{ 
+                  marginTop: "70px",
                   position: "relative",
                   transform: plan.popular ? "scale(1.05)" : "scale(1)",
                   zIndex: plan.popular ? 2 : 1
                 }}
               >
                 {plan.popular && (
-                  <div style={{
+                  <div className="floating" style={{
                     position: "absolute",
                     top: "-15px",
                     left: "50%",
                     transform: "translateX(-50%)",
-                    background: "linear-gradient(135deg, #FFD700 0%, #FFA500 100%)",
+                    background: "linear-gradient(135deg,rgb(255, 0, 0) 0%,rgb(255, 0, 183) 100%)",
                     padding: "8px 24px",
-                    borderRadius: "50px",
+                    borderRadius: "5px",
                     fontWeight: "700",
                     fontSize: "0.85rem",
                     color: "white",
-                    boxShadow: "0 5px 20px rgba(255, 215, 0, 0.5)",
+                     boxShadow: "0 10px 40px rgba(46, 46, 46, 0.6)",
                     zIndex: 3,
                     display: "flex",
                     alignItems: "center",
@@ -1107,43 +1098,21 @@ const LandingPage = () => {
           marginBottom: "1.5rem",
           textShadow: "0 4px 20px rgba(0,0,0,0.5)"
         }}>
-          Ready to Scrape the Web? 🚀
+          Ready to Scrape the Web?
         </H2>
 
-        <p style={{
-          color: "#e0e0e0",
+        <h3 style={{
+          color: "white",
           fontSize: "clamp(1rem, 2.5vw, 1.5rem)",
           marginBottom: "3rem",
           maxWidth: "600px",
-          margin: "0 auto 3rem auto"
+          margin: "0 auto 3rem auto",
+          textShadow: "0 4px 20px rgba(0,0,0,0.5)"
         }}>
-          Join thousands of developers and businesses who trust CrawlNet for their web scraping needs
-        </p>
+        🌐 CrawlNet – Fast and scalable web scraper using FastAPI + Selenium.
+        </h3>
 
-        <Button 
-          className="glowing"
-          intent={Intent.SUCCESS} 
-          large
-          style={{
-            fontSize: "clamp(1.2rem, 2.5vw, 1.5rem)",
-            fontWeight: "700",
-            padding: "20px 60px",
-            borderRadius: "50px",
-            background: "linear-gradient(135deg, #11998e 0%, #38ef7d 100%)",
-            border: "none",
-            boxShadow: "0 10px 40px rgba(17, 153, 142, 0.6)"
-          }}
-        >
-          🎉 Start Your Free Trial Now
-        </Button>
 
-        <p style={{
-          color: "#9ca3af",
-          marginTop: "2rem",
-          fontSize: "1.1rem"
-        }}>
-          No credit card required • 14-day free trial • Cancel anytime
-        </p>
       </section>
 
       {/* Footer */}
@@ -1161,7 +1130,7 @@ const LandingPage = () => {
               style={{ textDecoration: "none" }}
             >
               <H4 style={{ 
-                color: "#e0e0e0", 
+                color: "#9ca3af", 
                 fontWeight: "400",
                 margin: "0",
                 display: "flex",
@@ -1169,13 +1138,18 @@ const LandingPage = () => {
                 justifyContent: "center",
                 gap: "0.5rem"
               }}>
-                ❤️ Crafted with passion by{" "}
+              {" "}
                 <span style={{ 
-                  color: "#667eea", 
+                  fontFamily: "Lucida Console",
+                  color: "white", 
                   fontWeight: "700",
-                  fontSize: "1.3rem"
+                  fontSize: "1.3rem",
+                  borderRadius: "7px",
+                  background: "linear-gradient(135deg, #6a0572 0%, #ab1a6c 100%)",
+                  padding: "0.5rem 1rem",
+                  boxShadow: "0 10px 40px rgba(46, 46, 46, 0.6)"
                 }}>
-                  Anuraj 👨‍💻
+                  Anuraj.online
                 </span>
               </H4>
             </a>
@@ -1188,10 +1162,10 @@ const LandingPage = () => {
             flexWrap: "wrap",
             color: "#9ca3af"
           }}>
-            <a href="#" style={{ color: "inherit", textDecoration: "none" }}>📖 Documentation</a>
-            <a href="#" style={{ color: "inherit", textDecoration: "none" }}>🛟 Support</a>
-            <a href="#" style={{ color: "inherit", textDecoration: "none" }}>🔒 Privacy</a>
-            <a href="#" style={{ color: "inherit", textDecoration: "none" }}>📜 Terms</a>
+            <a href="" style={{ color: "inherit", textDecoration: "none" }}>📖 Documentation</a>
+            <a href="" style={{ color: "inherit", textDecoration: "none" }}>🛟 Support</a>
+            <a href="" style={{ color: "inherit", textDecoration: "none" }}>🔒 Privacy</a>
+            <a href="" style={{ color: "inherit", textDecoration: "none" }}>📜 Terms</a>
           </div>
 
           <p style={{
