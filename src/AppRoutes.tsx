@@ -1,7 +1,8 @@
 import { Routes, Route } from "react-router-dom";
+import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
 import LandingPage from "./pages/LandingPage";
 import OhsRoutes from "./pages/ohs/routes/OhsRoutes";
-import { SignedIn, SignedOut, RedirectToSignIn } from "@clerk/clerk-react";
+
 const AppRoutes = () => (
   <Routes>
     <Route path="/" element={<LandingPage />} />

@@ -2,10 +2,13 @@
   "compilerOptions": {
     "jsx": "react-jsx",
     "esModuleInterop": true,
-    "target": "ES2015",
-    "lib": ["DOM", "DOM.Iterable", "ES2015"],
+    "target": "ES2020",
+    "module": "ESNext",
+    "lib": ["DOM", "DOM.Iterable", "ES2020"],
     "skipLibCheck": true,
     "moduleResolution": "bundler",
-    "forceConsistentCasingInFileNames": false
-  }
+    "forceConsistentCasingInFileNames": false,
+    "types": ["vite/client"]
+  },
+  "include": ["src"]
 }

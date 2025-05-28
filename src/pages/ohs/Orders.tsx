@@ -17,6 +17,9 @@ import {
   Divider,
 } from "@blueprintjs/core";
 
+// Get API URL from environment variables
+const API_URL = import.meta.env.VITE_API_URL;
+
 interface Order {
   order_number: string;
   date: string;
@@ -83,7 +86,7 @@ export default function OhsOrders() {
     setSuccess(null);
     setSelectedOrders(new Set());
     try {
-      const response = await fetch("http://localhost:8000/orders_db");
+      const response = await fetch(`${API_URL}/orders_db`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -112,7 +115,7 @@ export default function OhsOrders() {
     setSelectedOrders(new Set());
     try {
       // Trigger the scrape (which also updates the DB)
-      const response = await fetch("http://localhost:8000/orders");
+      const response = await fetch(`${API_URL}/orders`);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -150,7 +153,7 @@ export default function OhsOrders() {
     setError(null);
     setSuccess(null);
     try {
-      const response = await fetch("http://localhost:8000/orders_db", {
+      const response = await fetch(`${API_URL}/orders_db`, {
         method: "DELETE"
       });
       

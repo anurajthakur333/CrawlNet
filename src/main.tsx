@@ -1,12 +1,15 @@
 import React from "react";
 import { createRoot } from "react-dom/client";
+import { ClerkProvider } from "@clerk/clerk-react";
 import App from "./App";
 import "@blueprintjs/core/lib/css/blueprint.css";
 import "@blueprintjs/icons/lib/css/blueprint-icons.css";
-import { ClerkProvider } from "@clerk/clerk-react";
 
+const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 
-const clerkPubKey = "pk_test_ZGlzdGluY3QtbWFncGllLTU5LmNsZXJrLmFjY291bnRzLmRldiQ";
+if (!clerkPubKey) {
+  throw new Error("Missing Clerk Publishable Key. Please add VITE_CLERK_PUBLISHABLE_KEY to your .env file");
+}
 
 createRoot(document.getElementById("root")!).render(
   <ClerkProvider publishableKey={clerkPubKey}>
