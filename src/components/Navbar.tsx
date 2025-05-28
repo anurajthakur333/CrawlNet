@@ -70,31 +70,44 @@ export default function AppNavbar() {
           </Link>
           </SignedIn>
         </div>
-        <SignedIn>
-    <UserButton />
-  </SignedIn>
 
-  <SignedOut>
-    <SignInButton mode="modal">
-      <Button text="Sign In" minimal outlined style={{ color: "#fff", borderColor: "rgba(255,255,255,0.25)" }} />
-    </SignInButton>
-  </SignedOut>
-        {/* Made by */}
-        <a
-          href="https://anuraj.online"
-          target="_blank"
-          rel="noopener noreferrer"
-          style={{
-            textDecoration: "none",
-            color: "#9ca3af",
-            fontSize: "0.95rem",
-            display: "flex",
-            alignItems: "center",
-            gap: "0.3rem",
-          }}
-        >
-          <span role="img" aria-label="heart">❤️</span> Made by <strong style={{ color: "#ffffff" }}>Anuraj</strong>
-        </a>
+        {/* Right side: Auth components + Made by */}
+        <div style={{ display: "flex", alignItems: "center", gap: "1.5rem" }}>
+          {/* Auth components */}
+          <SignedIn>
+            <UserButton />
+          </SignedIn>
+          <SignedOut>
+            <SignInButton mode="modal">
+              <Button 
+                text="Sign In" 
+                minimal 
+                outlined 
+                style={{ 
+                  color: "#fff", 
+                  borderColor: "rgba(255,255,255,0.25)" 
+                }} 
+              />
+            </SignInButton>
+          </SignedOut>
+          
+          {/* Made by */}
+          <a
+            href="https://anuraj.online"
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{
+              textDecoration: "none",
+              color: "#9ca3af",
+              fontSize: "0.95rem",
+              display: "flex",
+              alignItems: "center",
+              gap: "0.3rem",
+            }}
+          >
+            <span role="img" aria-label="heart">❤️</span> Made by <strong style={{ color: "#ffffff" }}>Anuraj</strong>
+          </a>
+        </div>
       </div>
     </Navbar>
   );
