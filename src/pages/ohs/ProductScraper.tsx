@@ -406,6 +406,7 @@ export default function ProductScraper() {
       {/* Job Queue Alert */}
       {hasRunningJob && (
         <Alert
+          isOpen={true}
           intent="primary"
           icon="info-sign"
           style={{ marginBottom: "20px" }}
@@ -445,7 +446,7 @@ export default function ProductScraper() {
               <div style={{ marginTop: "8px", fontSize: "14px" }}>
                 <div><strong>SKU:</strong> {job.current_product.sku}</div>
                 <div><strong>Product:</strong> {job.current_product.name}</div>
-                <div><strong>Status:</strong> <Tag intent="primary" small>{job.current_product.status}</Tag></div>
+                <div><strong>Status:</strong> <Tag intent="primary">{job.current_product.status}</Tag></div>
               </div>
             </Card>
           )}
