@@ -19,13 +19,15 @@ An intelligent web scraping platform with automated order tracking for OnlineHom
 │   ├── components/         # React components
 │   ├── pages/             # Page components
 │   └── main.tsx           # App entry point
-├── python-scripts/        # FastAPI backend
+├── backend/               # FastAPI backend
 │   ├── main.py            # FastAPI server
-│   ├── scrape_orders.py   # Web scraping logic
+│   ├── scraper.py         # Web scraping logic
 │   ├── start_server.py    # Server startup script
 │   ├── requirements.txt   # Python dependencies
+│   ├── venv/              # Python virtual environment
 │   └── .env               # Backend environment variables
 ├── .env                   # Frontend environment variables
+├── package.json           # Frontend dependencies
 └── README.md
 ```
 
@@ -48,8 +50,15 @@ cd CrawlNet
 # Install frontend dependencies
 npm install
 
-# Set up Python virtual environment
-cd python-scripts
+# Set up backend (automated setup)
+cd backend
+./setup.sh
+cd ..
+```
+
+**Alternative manual backend setup:**
+```bash
+cd backend
 python3 -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
@@ -70,7 +79,7 @@ VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_clerk_key_here
 VITE_DEV=true
 ```
 
-#### Backend Environment (`python-scripts/.env`)
+#### Backend Environment (`backend/.env`)
 ```bash
 # CORS Configuration
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173,http://127.0.0.1:3000,http://127.0.0.1:5173
@@ -107,7 +116,7 @@ brew services start mongodb/brew/mongodb-community
 **Option B: MongoDB Atlas (Cloud)**
 ```bash
 # Get connection string from MongoDB Atlas
-# Update MONGO_URI in python-scripts/.env
+# Update MONGO_URI in backend/.env
 MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/
 ```
 
@@ -116,7 +125,7 @@ MONGO_URI=mongodb+srv://username:password@cluster.mongodb.net/
 ### Start the Backend
 
 ```bash
-cd python-scripts
+cd backend
 source venv/bin/activate  # Activate virtual environment
 python start_server.py    # Start FastAPI server
 ```
@@ -156,8 +165,12 @@ The frontend will be available at: `http://localhost:5173`
 
 **1. Module Not Found Errors**
 ```bash
-# Ensure virtual environment is activated
-cd python-scripts
+# If you get "ModuleNotFoundError", recreate the virtual environment
+cd backend
+rm -rf venv           # Remove broken environment
+./setup.sh            # Use automated setup script
+# OR manually:
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
@@ -181,6 +194,31 @@ brew services list | grep mongodb
 CORS_ORIGINS=http://localhost:3000,http://localhost:5173
 ```
 
+**5. Scraper Issues**
+
+**Test the scraper directly:**
+```bash
+cd backend
+source venv/bin/activate
+python test_scraper.py
+```
+
+**Common scraper problems:**
+- **"Could not find orders table"**: The website structure may have changed, or login failed
+- **"CAPTCHA detected"**: Manual intervention required - try logging in manually first
+- **"Login failed"**: Check your OHS_EMAIL and OHS_PASSWORD in `backend/.env`
+- **Chrome driver issues**: Update Chrome browser or try running with `SCRAPER_HEADLESS=False`
+
+**Debug files**: When scraper fails, it creates debug HTML files:
+- `debug_page_source.html` - Page source when orders table not found
+- `login_debug_page_source.html` - Page source when login fails
+- `captcha_page_source.html` - Page source when CAPTCHA detected
+
+**Manual testing**: Set `SCRAPER_HEADLESS=False` in `scraper.py` to see what's happening:
+```python
+SCRAPER_HEADLESS = False  # Change this line in scraper.py
+```
+
 ## 🔧 Development Scripts
 
 ```bash
@@ -190,8 +228,9 @@ npm run build      # Build for production
 npm run preview    # Preview production build
 
 # Backend
+cd backend
 python start_server.py     # Start FastAPI server
-python scrape_orders.py    # Run scraper directly
+python scraper.py          # Run scraper directly
 python main.py             # Alternative server start
 ```
 

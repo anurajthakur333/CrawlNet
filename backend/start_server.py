@@ -4,7 +4,7 @@ Simple script to start the FastAPI server with proper environment configuration.
 """
 
 import uvicorn
-from Ohs import app, API_HOST, API_PORT, DEBUG
+from main import app, API_HOST, API_PORT, DEBUG
 
 if __name__ == "__main__":
     print(f"🚀 Starting FastAPI server on {API_HOST}:{API_PORT}")
@@ -14,7 +14,7 @@ if __name__ == "__main__":
     print("-" * 50)
     
     uvicorn.run(
-        "Ohs:app",
+        "main:app",
         host=API_HOST,
         port=API_PORT,
         reload=DEBUG,

@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Card,
   Elevation,
@@ -26,6 +27,7 @@ interface Order {
   total: string;
   status: string;
   view_link: string;
+  order_id?: string;
 }
 
 interface Stats {
@@ -44,6 +46,7 @@ interface Filters {
 }
 
 export default function OhsOrders() {
+  const navigate = useNavigate();
   const [orders, setOrders] = useState<Order[]>([]);
   const [stats, setStats] = useState<Stats>({ total: 0, completed: 0, canceled: 0, db_count: 0 });
   const [loading, setLoading] = useState(false);
@@ -129,8 +132,20 @@ export default function OhsOrders() {
         
         const scrapedCount = data.scraped_count || 0;
         const dbCount = data.count || 0;
-        setLastFetchInfo(`Scraped ${scrapedCount} orders, ${dbCount} total in database`);
-        setSuccess(`Successfully fetched and saved ${scrapedCount} orders to database!`);
+        const detailsScraped = data.order_details_scraped || 0;
+        const detailsFailed = data.order_details_failed || 0;
+        
+        setLastFetchInfo(`Scraped ${scrapedCount} orders, ${dbCount} total in database. Order details: ${detailsScraped} successful, ${detailsFailed} failed`);
+        
+        let successMessage = `Successfully fetched and saved ${scrapedCount} orders to database!`;
+        if (detailsScraped > 0) {
+          successMessage += ` Also scraped details for ${detailsScraped} orders.`;
+        }
+        if (detailsFailed > 0) {
+          successMessage += ` Note: ${detailsFailed} order details failed to scrape (likely canceled orders).`;
+        }
+        
+        setSuccess(successMessage);
       } else if (data.error) {
         setError(`Scraping error: ${data.error}`);
       } else {
@@ -168,8 +183,12 @@ export default function OhsOrders() {
         setStats({ total: 0, completed: 0, canceled: 0, db_count: 0 });
         setSelectedOrders(new Set());
         setCurrentPage(1);
-        setLastFetchInfo(`Deleted ${data.deleted_count} orders from database`);
-        setSuccess(`Successfully deleted ${data.deleted_count} orders from database!`);
+        
+        const ordersDeleted = data.orders_deleted || 0;
+        const orderDetailsDeleted = data.order_details_deleted || 0;
+        
+        setLastFetchInfo(`Deleted ${ordersDeleted} orders and ${orderDetailsDeleted} order details from database`);
+        setSuccess(`Successfully deleted ${ordersDeleted} orders and ${orderDetailsDeleted} order details from database!`);
       } else {
         setError(`Delete error: ${data.error}`);
       }
@@ -177,6 +196,186 @@ export default function OhsOrders() {
       setError(err instanceof Error ? err.message : "Unknown error occurred");
     } finally {
       setDeleting(false);
+    }
+  };
+
+  // Export order details CSV for selected orders
+  const exportSelectedOrderDetails = async () => {
+    if (selectedOrders.size === 0) {
+      setError("No orders selected for export");
+      return;
+    }
+
+    // Get order IDs from selected orders
+    const selectedOrdersData = orders.filter(order => selectedOrders.has(order.order_number));
+    const orderIds = selectedOrdersData.map(order => order.order_id).filter(id => id);
+    
+    if (orderIds.length === 0) {
+      setError("Selected orders do not have order IDs for details export");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      // Fetch order details for each selected order from database
+      const allOrderDetails = [];
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const orderId of orderIds) {
+        try {
+          const response = await fetch(`${API_URL}/order_details_db/${orderId}`);
+          const data = await response.json();
+          
+          if (data.success && data.found) {
+            data.products.forEach((product: any, index: number) => {
+              allOrderDetails.push({
+                sno: allOrderDetails.length + 1,
+                order_number: data.order_info?.order_number || 'N/A',
+                order_id: orderId,
+                order_date: data.order_info?.order_date || 'N/A',
+                order_status: data.order_info?.order_status || 'N/A',
+                product_name: product.product_name || 'N/A',
+                sku: product.sku || 'N/A',
+                size: product.size || 'N/A',
+                filling: product.filling || 'N/A',
+                price: product.price || 'N/A',
+                quantity: product.quantity || 'N/A',
+                subtotal: product.subtotal || 'N/A'
+              });
+            });
+            successCount++;
+          } else {
+            failCount++;
+          }
+        } catch (err) {
+          failCount++;
+        }
+      }
+
+      if (allOrderDetails.length === 0) {
+        setError("No order details found for selected orders. Please scrape order details first.");
+        return;
+      }
+
+      // Generate CSV
+      const headers = [
+        "S.No",
+        "Order Number",
+        "Order ID", 
+        "Order Date",
+        "Order Status",
+        "Product Name",
+        "SKU",
+        "Size",
+        "Filling",
+        "Price",
+        "Quantity",
+        "Subtotal"
+      ];
+      
+      const csvRows = allOrderDetails.map((detail) => [
+        `"${detail.sno}"`,
+        `"${detail.order_number}"`,
+        `"${detail.order_id}"`,
+        `"${detail.order_date}"`,
+        `"${detail.order_status}"`,
+        `"${detail.product_name}"`,
+        `"${detail.sku}"`,
+        `"${detail.size}"`,
+        `"${detail.filling}"`,
+        `"${detail.price}"`,
+        `"${detail.quantity}"`,
+        `"${detail.subtotal}"`
+      ]);
+      
+      const csvContent = [
+        headers.join(","),
+        ...csvRows.map(row => row.join(","))
+      ].join("\n");
+
+      // Generate filename with timestamp
+      const timestamp = new Date().toISOString().split('T')[0];
+      const filename = `ohs_order_details_${timestamp}.csv`;
+      
+      // Download CSV
+      downloadCSV(csvContent, filename);
+      
+      setSuccess(`Successfully exported ${allOrderDetails.length} order details from ${successCount} orders to ${filename}`);
+      
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error occurred");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const sendToProductScraper = async () => {
+    if (selectedOrders.size === 0) {
+      setError("No orders selected for product scraping");
+      return;
+    }
+
+    // Get order IDs from selected orders
+    const selectedOrdersData = orders.filter(order => selectedOrders.has(order.order_number));
+    const orderIds = selectedOrdersData.map(order => order.order_id).filter(id => id);
+    
+    if (orderIds.length === 0) {
+      setError("Selected orders do not have order IDs for product scraping");
+      return;
+    }
+
+    setLoading(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      // Generate products from orders first
+      const response = await fetch(`${API_URL}/generate_products_from_orders`);
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.error || "Failed to generate products from orders");
+      }
+
+      // Filter products for only selected orders
+      const selectedProducts = data.products.filter((product: any) => 
+        orderIds.includes(product.order_id)
+      );
+
+      if (selectedProducts.length === 0) {
+        setError("No products found for selected orders. Please scrape order details first.");
+        return;
+      }
+
+      // Start product scraping job
+      const scrapingResponse = await fetch(`${API_URL}/start_product_scraping`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          products: selectedProducts
+        })
+      });
+
+      const scrapingData = await scrapingResponse.json();
+
+      if (scrapingData.success) {
+        setSuccess(`Started product scraping job for ${selectedProducts.length} products from ${selectedOrders.size} orders! Check Product Scraper page for progress.`);
+        // Clear selection
+        setSelectedOrders(new Set());
+      } else {
+        setError(scrapingData.error || "Failed to start product scraping");
+      }
+
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Unknown error occurred");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -194,7 +393,9 @@ export default function OhsOrders() {
 
       if (!statusFilter) return false;
 
-      if (filters.orderNumber && !order.order_number.toLowerCase().includes(filters.orderNumber.toLowerCase())) {
+      if (filters.orderNumber && 
+          !order.order_number.toLowerCase().includes(filters.orderNumber.toLowerCase()) &&
+          !(order.order_id && order.order_id.toLowerCase().includes(filters.orderNumber.toLowerCase()))) {
         return false;
       }
 
@@ -262,6 +463,103 @@ export default function OhsOrders() {
       dateTo: "",
     });
     setCurrentPage(1);
+  };
+
+  // CSV Export functionality
+  const convertToCSV = (orders: Order[]) => {
+    const headers = [
+      "S.No",
+      "Order Number", 
+      "Order ID", 
+      "Date", 
+      "Total", 
+      "Status", 
+      "View Link"
+    ];
+    
+    const csvRows = orders.map((order, index) => [
+      `"${index + 1}"`,
+      `"${order.order_number}"`,
+      `"${order.order_id || 'N/A'}"`,
+      `"${order.date}"`,
+      `"${order.total}"`,
+      `"${order.status}"`,
+      `"${order.view_link}"`
+    ]);
+    
+    const csvContent = [
+      headers.join(","),
+      ...csvRows.map(row => row.join(","))
+    ].join("\n");
+    
+    return csvContent;
+  };
+
+  const downloadCSV = (csvContent: string, filename: string) => {
+    try {
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const link = document.createElement("a");
+      
+      if (link.download !== undefined) {
+        const url = URL.createObjectURL(blob);
+        link.setAttribute("href", url);
+        link.setAttribute("download", filename);
+        link.style.visibility = "hidden";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        // Clean up the URL object
+        setTimeout(() => {
+          URL.revokeObjectURL(url);
+        }, 100);
+      } else {
+        throw new Error("Browser doesn't support file download");
+      }
+    } catch (err) {
+      setError(`Failed to download CSV: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    }
+  };
+
+  const exportSelectedOrders = () => {
+    // Get the selected orders
+    const selectedOrdersData = orders.filter(order => 
+      selectedOrders.has(order.order_number)
+    );
+    
+    if (selectedOrdersData.length === 0) {
+      setError("No orders selected for export");
+      return;
+    }
+    
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `ohs_selected_orders_${timestamp}.csv`;
+    
+    // Convert to CSV and download
+    const csvContent = convertToCSV(selectedOrdersData);
+    downloadCSV(csvContent, filename);
+    
+    // Show success message
+    setSuccess(`Successfully exported ${selectedOrdersData.length} selected orders to ${filename}`);
+  };
+
+  const exportAllFilteredOrders = () => {
+    if (filteredOrders.length === 0) {
+      setError("No orders to export");
+      return;
+    }
+    
+    // Generate filename with timestamp
+    const timestamp = new Date().toISOString().split('T')[0];
+    const filename = `ohs_all_orders_${timestamp}.csv`;
+    
+    // Convert to CSV and download
+    const csvContent = convertToCSV(filteredOrders);
+    downloadCSV(csvContent, filename);
+    
+    // Show success message
+    setSuccess(`Successfully exported ${filteredOrders.length} orders to ${filename}`);
   };
 
   return (
@@ -412,61 +710,76 @@ export default function OhsOrders() {
         {/* Filters */}
         <Card elevation={Elevation.ONE} style={{ marginBottom: "25px", padding: "20px" }}>
           <div style={{ 
-            display: "grid", 
-            gridTemplateColumns: "auto 1fr auto auto auto", 
-            gap: "15px", 
-            alignItems: "center" 
+            display: "flex",
+            flexDirection: "column",
+            gap: "15px"
           }}>
-            {/* Status Filters */}
-            <div style={{ display: "flex", alignItems: "center", gap: "15px" }}>
-              <span style={{ fontWeight: 500, color: "#394b59" }}>Status:</span>
-              <Checkbox
-                checked={filters.showCompleted}
-                onChange={(e) => setFilters({...filters, showCompleted: e.currentTarget.checked})}
-                label="Complete"
-              />
-              <Checkbox
-                checked={filters.showCanceled}
-                onChange={(e) => setFilters({...filters, showCanceled: e.currentTarget.checked})}
-                label="Canceled"
+            {/* First Row: Status Filters and Search */}
+            <div style={{ 
+              display: "flex", 
+              flexWrap: "wrap",
+              gap: "15px", 
+              alignItems: "center" 
+            }}>
+              {/* Status Filters */}
+              <div style={{ display: "flex", alignItems: "center", gap: "15px", minWidth: "fit-content" }}>
+                <span style={{ fontWeight: 500, color: "#394b59" }}>Status:</span>
+                <Checkbox
+                  checked={filters.showCompleted}
+                  onChange={(e) => setFilters({...filters, showCompleted: e.currentTarget.checked})}
+                  label="Complete"
+                />
+                <Checkbox
+                  checked={filters.showCanceled}
+                  onChange={(e) => setFilters({...filters, showCanceled: e.currentTarget.checked})}
+                  label="Canceled"
+                />
+              </div>
+
+              {/* Search */}
+              <InputGroup
+                leftIcon="search"
+                placeholder="Search order number or ID..."
+                value={filters.orderNumber}
+                onChange={(e) => setFilters({...filters, orderNumber: e.target.value})}
+                style={{ flex: 1, minWidth: "250px" }}
               />
             </div>
-
-            {/* Search */}
-            <InputGroup
-              leftIcon="search"
-              placeholder="Search order number..."
-              value={filters.orderNumber}
-              onChange={(e) => setFilters({...filters, orderNumber: e.target.value})}
-              style={{ maxWidth: "200px" }}
-            />
-
-            {/* Date Filters */}
-            <InputGroup
-              leftIcon="calendar"
-              type="date"
-              placeholder="From date"
-              value={filters.dateFrom}
-              onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
-              style={{ width: "150px" }}
-            />
             
-            <InputGroup
-              leftIcon="calendar"
-              type="date"
-              placeholder="To date"
-              value={filters.dateTo}
-              onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
-              style={{ width: "150px" }}
-            />
+            {/* Second Row: Date Filters and Clear Button */}
+            <div style={{ 
+              display: "flex", 
+              flexWrap: "wrap",
+              gap: "15px", 
+              alignItems: "center" 
+            }}>
+              {/* Date Filters */}
+              <InputGroup
+                leftIcon="calendar"
+                type="date"
+                placeholder="From date"
+                value={filters.dateFrom}
+                onChange={(e) => setFilters({...filters, dateFrom: e.target.value})}
+                style={{ width: "150px" }}
+              />
+              
+              <InputGroup
+                leftIcon="calendar"
+                type="date"
+                placeholder="To date"
+                value={filters.dateTo}
+                onChange={(e) => setFilters({...filters, dateTo: e.target.value})}
+                style={{ width: "150px" }}
+              />
 
-            <Button
-              icon="cross"
-              onClick={clearFilters}
-              minimal
-            >
-              Clear
-            </Button>
+              <Button
+                icon="cross"
+                onClick={clearFilters}
+                minimal
+              >
+                Clear
+              </Button>
+            </div>
           </div>
         </Card>
 
@@ -546,10 +859,11 @@ export default function OhsOrders() {
                     />
                   </th>
                   <th style={{ fontWeight: 600 }}>Order #</th>
+                  <th style={{ fontWeight: 600 }}>Order ID</th>
                   <th style={{ fontWeight: 600 }}>Date</th>
                   <th style={{ fontWeight: 600 }}>Total</th>
                   <th style={{ fontWeight: 600 }}>Status</th>
-                  <th style={{ width: "100px", textAlign: "center", fontWeight: 600 }}>Action</th>
+                  <th style={{ width: "140px", textAlign: "center", fontWeight: 600 }}>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -569,6 +883,9 @@ export default function OhsOrders() {
                     <td style={{ fontWeight: 600, fontFamily: "monospace" }}>
                       {order.order_number}
                     </td>
+                    <td style={{ fontWeight: 600, fontFamily: "monospace", color: "#137cbd" }}>
+                      {order.order_id || 'N/A'}
+                    </td>
                     <td>{order.date}</td>
                     <td style={{ fontWeight: 600 }}>{order.total}</td>
                     <td>
@@ -580,14 +897,32 @@ export default function OhsOrders() {
                       </Tag>
                     </td>
                     <td style={{ textAlign: "center" }}>
-                      <Button
-                        small
-                        icon="document-open"
-                        intent="primary"
-                        onClick={() => window.open(order.view_link, "_blank")}
-                      >
-                        View
-                      </Button>
+                      <ButtonGroup minimal>
+                        <Button
+                          small
+                          icon="document-open"
+                          intent="primary"
+                          onClick={() => {
+                            if (order.order_id) {
+                              navigate(`/ohs/order-details/${order.order_id}`);
+                            } else {
+                              window.open(order.view_link, "_blank");
+                            }
+                          }}
+                        >
+                          {order.order_id ? "Details" : "View"}
+                        </Button>
+                        
+                        <Button
+                          small
+                          icon="link"
+                          intent="none"
+                          onClick={() => window.open(order.view_link, "_blank")}
+                          title="View original order on OnlineHomeShop"
+                        >
+                          View Order
+                        </Button>
+                      </ButtonGroup>
                     </td>
                   </tr>
                 ))}
@@ -636,12 +971,47 @@ export default function OhsOrders() {
             }}
           >
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "14px", fontWeight: 500 }}>
-                {selectedOrders.size} order{selectedOrders.size !== 1 ? 's' : ''} selected
-              </span>
+              <div>
+                <span style={{ fontSize: "14px", fontWeight: 500 }}>
+                  {selectedOrders.size} order{selectedOrders.size !== 1 ? 's' : ''} selected
+                </span>
+                {(() => {
+                  const selectedOrdersData = orders.filter(order => selectedOrders.has(order.order_number));
+                  const totalValue = selectedOrdersData.reduce((sum, order) => {
+                    const value = parseFloat(order.total.replace(/[£$€,]/g, '')) || 0;
+                    return sum + value;
+                  }, 0);
+                  const completeCount = selectedOrdersData.filter(order => order.status.toLowerCase() === 'complete').length;
+                  const canceledCount = selectedOrdersData.filter(order => order.status.toLowerCase() === 'canceled').length;
+                  
+                  return (
+                    <div style={{ fontSize: "12px", color: "#5c7080", marginTop: "5px" }}>
+                      Total Value: £{totalValue.toFixed(2)} | Complete: {completeCount} | Canceled: {canceledCount}
+                    </div>
+                  );
+                })()}
+              </div>
               <ButtonGroup style={{ gap: "16px" }}>
-                <Button icon="export" intent="primary" small>
-                  Export
+                <Button icon="export" intent="primary" small onClick={exportSelectedOrders}>
+                  Export Orders
+                </Button>
+                <Button 
+                  icon="document"
+                  intent="success"
+                  small
+                  onClick={exportSelectedOrderDetails}
+                  disabled={loading}
+                >
+                  Export Details
+                </Button>
+                <Button 
+                  icon="search-around"
+                  intent="warning"
+                  small
+                  onClick={sendToProductScraper}
+                  disabled={loading}
+                >
+                  Send to Product Scraper
                 </Button>
                 <Button 
                   icon="cross" 
@@ -649,6 +1019,30 @@ export default function OhsOrders() {
                   onClick={() => setSelectedOrders(new Set())}
                 >
                   Clear
+                </Button>
+              </ButtonGroup>
+            </div>
+          </Card>
+        )}
+
+        {/* Export All Filtered Orders */}
+        {filteredOrders.length > 0 && (
+          <Card 
+            elevation={Elevation.ONE} 
+            style={{ 
+              marginTop: "25px", 
+              padding: "15px",
+              borderLeft: "4px solid #137cbd",
+              backgroundColor: "#f6f9fc"
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <span style={{ fontSize: "14px", fontWeight: 500 }}>
+                Export All Filtered Orders
+              </span>
+              <ButtonGroup style={{ gap: "16px" }}>
+                <Button icon="export" intent="primary" small onClick={exportAllFilteredOrders}>
+                  Export All
                 </Button>
               </ButtonGroup>
             </div>

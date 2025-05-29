@@ -17,6 +17,18 @@ dist-ssr
 .env.local
 .env.*.local
 
+# Backend environment variables
+backend/.env
+backend/.env.local
+backend/.env.*.local
+
+# Python virtual environment
+backend/venv/
+
+# Python cache
+backend/__pycache__/
+backend/*.pyc
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
@@ -27,5 +39,3 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
-python-scripts/.env
-python-scripts/venv/
